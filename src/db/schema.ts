@@ -78,3 +78,24 @@ export const pluginRegistry = sqliteTable('plugin_registry', {
   createdAt: text('created_at').default(sql`(datetime('now'))`),
   updatedAt: text('updated_at').default(sql`(datetime('now'))`),
 });
+
+// ── Notes ──────────────────────────────────────────────
+export const notes = sqliteTable('notes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  path: text('path').notNull().unique(),           // markdown file on disk
+  tags: text('tags'),                               // comma-separated
+  courseId: integer('course_id').references(() => courses.id, { onDelete: 'set null' }),
+  moduleId: integer('module_id').references(() => modules.id, { onDelete: 'set null' }),
+  aiSummary: text('ai_summary'),                   // AI-generated summary
+  createdAt: text('created_at').default(sql`(datetime('now'))`),
+  updatedAt: text('updated_at').default(sql`(datetime('now'))`),
+});
+
+// ── Note Links (note ↔ note relationships) ─────────────
+export const noteLinks = sqliteTable('note_links', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sourceNoteId: integer('source_note_id').references(() => notes.id, { onDelete: 'cascade' }).notNull(),
+  targetNoteId: integer('target_note_id').references(() => notes.id, { onDelete: 'cascade' }).notNull(),
+  label: text('label'),                            // e.g. 'related', 'prerequisite'
+});

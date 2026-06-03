@@ -8,19 +8,15 @@ export function NavHeader() {
 
   return (
     <Group h="100%" px="md" justify="space-between">
-      <Button
-        onClick={() => router.push('/')}
-        variant="transparent"
-        fw={700}
-        size="md"
-      >
-        🧠 Cortex
-      </Button>
-      <Button
-        onClick={() => router.push('/settings')}
-        variant="subtle"
-        size="sm"
-      >
+      <Group gap="xs">
+        <Button onClick={() => router.push('/')} variant="transparent" fw={700} size="md">
+          🧠 Cortex
+        </Button>
+        <Button onClick={() => router.push('/notes')} variant="subtle" size="sm">
+          📝 Заметки
+        </Button>
+      </Group>
+      <Button onClick={() => router.push('/settings')} variant="subtle" size="sm">
         ⚙️ Настройки
       </Button>
     </Group>

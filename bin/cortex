@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# Cortex CLI — Hermes integration
+# Usage: cortex <command> [args...]
+# Hermes can call this via terminal tool to interact with Cortex workspace.
+
+BASE_URL="${CORTEX_URL:-http://localhost:3000}"
+
+cmd="$1"
+shift
+
+case "$cmd" in
+  note)
+    sub="$1"; shift
+    case "$sub" in
+      list)
+        curl -s "$BASE_URL/api/notes${*:+?q=$*}" | python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+if isinstance(data, list):
+  for n in data:
+    print(f\"  [{n['id']}] {n['title']}\")
+else:
+  print(data)
+"
+        ;;
+      create)
+        title="$1"; content="$2"
+        curl -s -X POST "$BASE_URL/api/notes" \
+          -H "Content-Type: application/json" \
+          -d "{\"title\":\"$title\",\"content\":\"$content\"}"
+        ;;
+      get)
+        curl -s "$BASE_URL/api/notes?id=$1" | python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+if 'content' in data:
+  print(f\"# {data['title']}\n\n{data['content']}\")
+else:
+  print(json.dumps(data, indent=2))
+"
+        ;;
+      delete)
+        curl -s -X DELETE "$BASE_URL/api/notes?id=$1"
+        ;;
+      search)
+        curl -s "$BASE_URL/api/notes?q=$*" | python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+for n in data:
+  print(f\"  [{n['id']}] {n['title']}\")
+"
+        ;;
+      *)
+        echo "Usage: cortex note <list|create|get|delete|search> [args]"
+        ;;
+    esac
+    ;;
+
+  obsidian)
+    sub="$1"
+    case "$sub" in
+      sync)
+        vault="${2:-}"
+        curl -s -X POST "$BASE_URL/api/obsidian-sync" \
+          -H "Content-Type: application/json" \
+          -d "{\"action\":\"sync\",\"path\":\"$vault\"}"
+        ;;
+      *)
+        echo "Usage: cortex obsidian sync [vault-path]"
+        ;;
+    esac
+    ;;
+
+  courses)
+    curl -s "$BASE_URL/api/courses" 2>/dev/null || echo "[]"
+    ;;
+
+  *)
+    echo "Cortex CLI — Personal Workspace"
+    echo ""
+    echo "Commands:"
+    echo "  cortex note list [query]        List/search notes"
+    echo "  cortex note create <title> <md> Create note"
+    echo "  cortex note get <id>            Read note"
+    echo "  cortex note delete <id>         Delete note"
+    echo "  cortex obsidian sync [path]     Sync Obsidian vault"
+    echo "  cortex courses                  List courses"
+    echo ""
+    echo "Env: CORTEX_URL (default http://localhost:3000)"
+    ;;
+esac
