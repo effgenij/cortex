@@ -7,6 +7,8 @@ import { eq, and } from 'drizzle-orm';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { ChatPanel } from '@/components/ChatPanel';
 import { MarkCompleteButton } from '@/components/MarkCompleteButton';
+import { JournalButton } from '@/components/JournalButton';
+import { DeepResearchButton } from '@/components/DeepResearchButton';
 import { readFile } from 'fs/promises';
 
 export const dynamic = 'force-dynamic';
@@ -62,7 +64,13 @@ export default async function ModulePage({ params }: { params: Promise<{ courseI
           </Button>
         </Group>
 
-        <Title order={2}>{mod.orderIndex + 1}. {mod.title}</Title>
+        <Group justify="space-between">
+          <Title order={2}>{mod.orderIndex + 1}. {mod.title}</Title>
+          <Group gap="xs">
+            <DeepResearchButton moduleId={mod.id} moduleTitle={mod.title} />
+            <JournalButton moduleId={mod.id} />
+          </Group>
+        </Group>
         <Text c="dimmed" size="sm">{course.title}</Text>
 
         <Grid>
