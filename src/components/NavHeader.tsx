@@ -21,6 +21,9 @@ export function NavHeader() {
         <Button onClick={() => router.push('/calendar')} variant="subtle" size="sm">
           📅 Календарь
         </Button>
+        <Button onClick={() => router.push('/inbox')} variant="subtle" size="sm">
+          📥 Inbox
+        </Button>
       </Group>
       <Button onClick={() => router.push('/settings')} variant="subtle" size="sm">
         ⚙️ Настройки

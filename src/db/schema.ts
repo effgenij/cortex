@@ -138,3 +138,27 @@ export const calendarEvents = sqliteTable('calendar_events', {
   createdAt: text('created_at').default(sql`(datetime('now'))`),
   updatedAt: text('updated_at').default(sql`(datetime('now'))`),
 });
+
+// ── Inbox Items ────────────────────────────────────────
+export const inboxItems = sqliteTable('inbox_items', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  url: text('url'),
+  sourceType: text('source_type').notNull().default('article'), // 'article' | 'podcast' | 'email' | 'youtube' | 'other'
+  status: text('status').notNull().default('new'),    // 'new' | 'in_progress' | 'processed' | 'archived'
+  summary: text('summary'),                            // AI-generated summary
+  extractedInsights: text('extracted_insights'),       // JSON array of insights
+  metadata: text('metadata', { mode: 'json' }),       // raw metadata
+  createdAt: text('created_at').default(sql`(datetime('now'))`),
+  processedAt: text('processed_at'),
+});
+
+// ── Knowledge Extracts ─────────────────────────────────
+export const knowledgeExtracts = sqliteTable('knowledge_extracts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  inboxItemId: integer('inbox_item_id').references(() => inboxItems.id, { onDelete: 'cascade' }).notNull(),
+  content: text('content').notNull(),
+  type: text('type').notNull().default('insight'),    // 'insight' | 'quote' | 'todo' | 'note'
+  courseId: integer('course_id').references(() => courses.id, { onDelete: 'set null' }),
+  createdAt: text('created_at').default(sql`(datetime('now'))`),
+});

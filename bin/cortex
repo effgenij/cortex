@@ -75,6 +75,165 @@ for n in data:
     curl -s "$BASE_URL/api/courses" 2>/dev/null || echo "[]"
     ;;
 
+  ask)
+    question="$*"
+    if [[ -z "$question" ]]; then
+      echo "Usage: cortex ask <question>"
+      exit 1
+    fi
+    curl -s -X POST "$BASE_URL/api/orchestrator" \
+      -H "Content-Type: application/json" \
+      -d "{\"question\":\"$question\"}" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+print(d.get('answer', d.get('error', 'No answer')))
+"
+    ;;
+
+  inbox)
+    sub="$1"; shift
+    case "$sub" in
+      list)
+        status="${1:-new}"
+        curl -s "$BASE_URL/api/inbox?status=$status" | python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+for item in data:
+  summary = item.get('summary','')
+  short = (summary[:80] + '...') if summary and len(summary) > 80 else summary
+  print(f\"  [{item['id']}] {item['title']}\")
+  if short:
+    print(f\"       {short}\")
+  print()
+"
+        ;;
+      add)
+        title="$1"; shift
+        url=""; source="article"
+        while [[ $# -gt 0 ]]; do
+          case "$1" in
+            --url) url="$2"; shift 2 ;;
+            --type) source="$2"; shift 2 ;;
+            *) shift ;;
+          esac
+        done
+        body="{\"title\":\"$title\",\"sourceType\":\"$source\""
+        [[ -n "$url" ]] && body="$body,\"url\":\"$url\""
+        body="$body}"
+        curl -s -X POST "$BASE_URL/api/inbox" \
+          -H "Content-Type: application/json" \
+          -d "$body"
+        echo ""
+        ;;
+      process)
+        id="$1"
+        curl -s -X PATCH "$BASE_URL/api/inbox" \
+          -H "Content-Type: application/json" \
+          -d "{\"id\":$id,\"action\":\"process\"}" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+if d.get('ok'):
+  print(f\"✅ Processed: {d.get('summary','')[:200]}\")
+  for i in d.get('insights', []):
+    print(f'  💡 {i}')
+else:
+  print(f\"❌ Error: {d.get('error', 'unknown')}\")
+"
+        ;;
+      archive)
+        id="$1"
+        curl -s -X PATCH "$BASE_URL/api/inbox" \
+          -H "Content-Type: application/json" \
+          -d "{\"id\":$id,\"action\":\"archive\"}"
+        echo "Archived #$id"
+        ;;
+      delete)
+        id="$1"
+        curl -s -X DELETE "$BASE_URL/api/inbox?id=$id"
+        echo "Deleted #$id"
+        ;;
+      *)
+        echo "Usage: cortex inbox <list|add|process|archive|delete> [args]"
+        echo "  cortex inbox list [status]      List items"
+        echo "  cortex inbox add <title>        Add item"
+        echo "    --url https://... --type article|podcast|email|youtube"
+        echo "  cortex inbox process <id>       AI-process item"
+        echo "  cortex inbox archive <id>       Archive item"
+        echo "  cortex inbox delete <id>        Delete item"
+        ;;
+    esac
+    ;;
+
+  briefing)
+    curl -s "$BASE_URL/api/briefing" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+print(f\"{d['greeting']}, Евгений! ({d['date']})\\n\")
+
+# Streak
+s=d.get('streak')
+if s:
+  print(f\"🔥 Сегодня: {s['current']} модулей, {s['minutes']} мин\" if s['current'] > 0 else '🔥 Сегодня ещё не занимался')
+else:
+  print('🔥 Сегодня ещё не занимался')
+print()
+
+# Courses
+courses=d.get('courses',{}).get('active',[])
+if courses:
+  print('📚 КУРСЫ:')
+  for c in courses:
+    bar='█'*(c['progress']//10)+'░'*(10-c['progress']//10)
+    print(f'  [{bar}] {c[\"progress\"]}% {c[\"title\"]}')
+  print()
+
+# Tasks
+tasks=d.get('tasks',{})
+overdue=tasks.get('overdue',[])
+today=tasks.get('today',[])
+if overdue:
+  print(f'⚠️  ПРОСРОЧЕНО ({len(overdue)}):')
+  for t in overdue:
+    prio={1:'🔥',2:'●',3:'○'}.get(t.get('priority',2),'○')
+    print(f'  {prio} {t[\"title\"]}')
+  print()
+if today:
+  print(f'📋 НА СЕГОДНЯ ({len(today)}):')
+  for t in today:
+    prio={1:'🔥',2:'●',3:'○'}.get(t.get('priority',2),'○')
+    print(f'  {prio} {t[\"title\"]}')
+  print()
+
+# Events
+events=d.get('events',[])
+if events:
+  print(f'📅 СОБЫТИЯ ({len(events)}):')
+  for e in events:
+    print(f'  {e[\"title\"]}')
+  print()
+
+# Notes
+notes=d.get('notes',{}).get('recent',[])
+if notes:
+  print(f'📝 ПОСЛЕДНИЕ ЗАМЕТКИ:')
+  for n in notes:
+    print(f'  {n[\"title\"]}')
+  print()
+
+# Inbox
+inbox_count=d.get('inbox',{}).get('unprocessed',0)
+if inbox_count > 0:
+  print(f'📥 Входящих: {inbox_count} необработано')
+
+# Knowledge
+insights=d.get('knowledge',{}).get('recentInsights',[])
+if insights:
+  print(f'\\n💡 СВЕЖИЕ ИНСАЙТЫ:')
+  for ins in insights:
+    print(f'  ● {ins[\"content\"]}')
+"
+    ;;
+
   task)
     sub="$1"; shift
     case "$sub" in
@@ -207,6 +366,11 @@ if courses:
     echo "  cortex task create <title>      Create task"
     echo "  cortex task done <id>           Mark task done"
     echo "  cortex today                    Today's briefing"
+    echo "  cortex ask <question>           Ask Hermes (with workspace context)"
+    echo "  cortex inbox list [status]      List inbox items"
+    echo "  cortex inbox add <title>        Add to inbox"
+    echo "  cortex inbox process <id>       AI-process inbox item"
+    echo "  cortex briefing                 Daily Briefing 2.0"
     echo ""
     echo "Env: CORTEX_URL (default http://localhost:3000)"
     ;;
