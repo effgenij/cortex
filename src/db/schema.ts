@@ -99,3 +99,42 @@ export const noteLinks = sqliteTable('note_links', {
   targetNoteId: integer('target_note_id').references(() => notes.id, { onDelete: 'cascade' }).notNull(),
   label: text('label'),                            // e.g. 'related', 'prerequisite'
 });
+
+// ── Projects ───────────────────────────────────────────
+export const projects = sqliteTable('projects', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  color: text('color').default('#228be6'),          // hex color for UI
+  createdAt: text('created_at').default(sql`(datetime('now'))`),
+});
+
+// ── Tasks ──────────────────────────────────────────────
+export const tasks = sqliteTable('tasks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  description: text('description'),
+  status: text('status').notNull().default('todo'), // 'todo' | 'in_progress' | 'done' | 'cancelled'
+  priority: integer('priority').default(2),          // 1=high, 2=medium, 3=low
+  dueDate: text('due_date'),                         // 'YYYY-MM-DD'
+  sourceType: text('source_type').default('manual'), // 'manual' | 'redmine' | 'reminders' | 'telegram'
+  sourceId: text('source_id'),                       // external ID if imported
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+  courseId: integer('course_id').references(() => courses.id, { onDelete: 'set null' }),
+  createdAt: text('created_at').default(sql`(datetime('now'))`),
+  updatedAt: text('updated_at').default(sql`(datetime('now'))`),
+});
+
+// ── Calendar Events ────────────────────────────────────
+export const calendarEvents = sqliteTable('calendar_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  description: text('description'),
+  startDate: text('start_date').notNull(),           // ISO datetime
+  endDate: text('end_date'),                         // ISO datetime (nullable for all-day)
+  allDay: integer('all_day', { mode: 'boolean' }).default(false),
+  sourceType: text('source_type').default('manual'), // 'manual' | 'google'
+  sourceId: text('source_id'),                       // external event ID
+  taskId: integer('task_id').references(() => tasks.id, { onDelete: 'set null' }),
+  createdAt: text('created_at').default(sql`(datetime('now'))`),
+  updatedAt: text('updated_at').default(sql`(datetime('now'))`),
+});

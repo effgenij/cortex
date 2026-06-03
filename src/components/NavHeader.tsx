@@ -15,6 +15,12 @@ export function NavHeader() {
         <Button onClick={() => router.push('/notes')} variant="subtle" size="sm">
           📝 Заметки
         </Button>
+        <Button onClick={() => router.push('/tasks')} variant="subtle" size="sm">
+          ✅ Задачи
+        </Button>
+        <Button onClick={() => router.push('/calendar')} variant="subtle" size="sm">
+          📅 Календарь
+        </Button>
       </Group>
       <Button onClick={() => router.push('/settings')} variant="subtle" size="sm">
         ⚙️ Настройки
