@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧠 Cortex — Personal Learning OS
 
-## Getting Started
+AI-powered learning companion. Self-hosted, local-first, open-source.
 
-First, run the development server:
+## What is Cortex?
+
+Cortex turns video courses into an interactive learning experience with an AI tutor. It's built for people who:
+- Start courses and never finish them
+- Have transcripts sitting unused in Obsidian
+- Want an AI that actually helps them learn, not just answer questions
+
+## How it works
+
+1. **Drop video courses** into a folder
+2. **Cortex discovers them** and creates a structured curriculum
+3. **AI tutor** generates summaries, answers questions, reviews your practice code
+4. **Track progress** with streaks and completion stats
+
+## Tech Stack
+
+- **Runtime:** Node.js + TypeScript
+- **Framework:** Next.js 16 (App Router, Turbopack)
+- **UI:** Mantine v9
+- **Database:** SQLite (Drizzle ORM + better-sqlite3)
+- **AI:** Pluggable — Hermes by default, any LLM agent can be added
+
+## Quick Start
 
 ```bash
+git clone git@github.com:effgenij/cortex.git
+cd cortex
+npm install
+npm run db:migrate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Place courses in `/root/courses/` (configurable via `COURSES_DIR` env):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+/root/courses/
+└── Course Name/
+    ├── cortex.json          # optional metadata
+    ├── 01 - Introduction.mp4
+    ├── 01 - Introduction.txt  # transcript
+    ├── 02 - Setup.mkv
+    └── ...
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture
 
-## Learn More
+```
+┌─────────────┐    ┌──────────────┐    ┌────────────┐
+│   Next.js   │    │  AI Adapter  │    │  Sources   │
+│  (Mantine)  │◄──►│  (pluggable) │    │ (pluggable)│
+└─────────────┘    └──────┬───────┘    └─────┬──────┘
+                          │                  │
+                    ┌─────▼──────────────────▼─────┐
+                    │         SQLite + FS          │
+                    └──────────────────────────────┘
+```
 
-To learn more about Next.js, take a look at the following resources:
+### AI Adapters (pluggable)
+- **Hermes** — default, calls `hermes chat` CLI
+- Claude Code, Codex, Pi — add a `cortex.plugin.json`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Content Sources (pluggable)
+- **LocalFS** — scans directories for video files
+- YouTube, RSS, Email — future plugins
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+src/
+├── app/              # Next.js App Router pages + API
+│   ├── page.tsx      # Dashboard
+│   ├── courses/      # Course + module views
+│   └── api/          # Chat, progress, media APIs
+├── core/             # Business logic
+│   ├── ai/           # AIService interface + Hermes impl
+│   ├── sources/      # ContentSource interface + LocalFS
+│   └── plugins/      # Plugin loader + manifest types
+├── db/               # Drizzle schema + migrations
+├── components/       # React components
+└── lib/              # Utilities
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev server |
+| `npm run build` | Production build |
+| `npm run db:migrate` | Apply DB migrations |
+| `npm run db:generate` | Generate new migration |
+| `npm run db:studio` | Open Drizzle Studio |
+
+## License
+
+MIT

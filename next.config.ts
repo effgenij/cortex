@@ -1,7 +1,6 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  transpilePackages: ['@mantine/core', '@mantine/hooks', '@mantine/notifications', '@mantine/nprogress'],
 };
 
 export default nextConfig;
