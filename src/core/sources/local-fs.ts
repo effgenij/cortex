@@ -49,14 +49,16 @@ export class LocalFSSource implements ContentSource {
 
   async getModules(courseId: string): Promise<ModuleFile[]> {
     const dirPath = join(this.rootDir, courseId);
-    const videoFiles = await this.findVideos(dirPath);
+    const allEntries = await this.readDirSafe(dirPath);
+    const videoFiles = allEntries.filter(f => VIDEO_EXTENSIONS.has(extname(f).toLowerCase()));
 
     // Sort naturally: 01, 02, 03...
     videoFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
     return videoFiles.map((file, i) => {
       const base = file.slice(0, -extname(file).length);
-      const transcript = this.findTranscript(videoFiles.map(f => join(dirPath, f)), join(dirPath, base));
+      const fullBase = join(dirPath, base);
+      const transcript = this.findTranscript(allEntries, fullBase);
 
       return {
         id: base,
@@ -70,19 +72,24 @@ export class LocalFSSource implements ContentSource {
 
   // ── helpers ──────────────────────────────────────────
 
-  private async findVideos(dirPath: string): Promise<string[]> {
+  private async readDirSafe(dirPath: string): Promise<string[]> {
     try {
-      const files = await readdir(dirPath);
-      return files.filter(f => VIDEO_EXTENSIONS.has(extname(f).toLowerCase()));
+      return await readdir(dirPath);
     } catch {
       return [];
     }
   }
 
-  private findTranscript(allFiles: string[], basePath: string): string | undefined {
+  private async findVideos(dirPath: string): Promise<string[]> {
+    const files = await this.readDirSafe(dirPath);
+    return files.filter(f => VIDEO_EXTENSIONS.has(extname(f).toLowerCase()));
+  }
+
+  private findTranscript(allFilenames: string[], basePath: string): string | undefined {
     for (const ext of TRANSCRIPT_EXTENSIONS) {
       const candidate = `${basePath}${ext}`;
-      if (allFiles.includes(candidate)) return candidate;
+      const candidateName = candidate.split('/').pop()!;
+      if (allFilenames.includes(candidateName)) return candidate;
     }
     return undefined;
   }
