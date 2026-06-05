@@ -2,7 +2,7 @@
 
 **Дата:** 05.06.2026
 **Автор:** Евгений + Hermes (gstack-office-hours, Builder Mode)
-**Статус:** DRAFT
+**Статус:** APPROVED
 **Mode:** Builder
 **Supersedes:** `/root/plans/cortex/office-hours-design.md` (v1, June 3) и `/root/plans/cortex/ceo-plan.md` (v2, June 3)
 
