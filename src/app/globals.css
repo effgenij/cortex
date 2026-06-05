@@ -1,9 +1,0 @@
-@import '@mantine/core/styles.css';
-@import '@mantine/notifications/styles.css';
-@import '@mantine/nprogress/styles.css';
-
-html,
-body {
-  height: 100%;
-  margin: 0;
-}
